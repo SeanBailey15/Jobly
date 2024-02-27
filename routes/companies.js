@@ -51,52 +51,55 @@ router.post("/", ensureLoggedIn, async function (req, res, next) {
 
 router.get("/", async function (req, res, next) {
   try {
-    // Declare variable to contain request query object
+    // Extracts query parameters from the request URL
     const filterBy = req.query;
+
+    // If no query params are provided, get all companies unfiltered
+    if (Object.keys(filterBy).length === 0) {
+      const companies = await Company.findAll();
+      return res.json({ companies });
+    }
 
     // Declare variables to contain min/max employees if applicable
     let minEmployees;
     let maxEmployees;
 
-    // Loop through provided query params and verify they are relevant to the data available
+    // Iterate through query parameters to validate and process them
     for (let key in filterBy) {
       // Checks that provided params match what is expected, throws error if not
       if (key != "nameLike" && key != "minEmployees" && key != "maxEmployees") {
-        throw new ExpressError(`Cannot filter results by ${key}`, 400);
+        throw new BadRequestError(
+          `Cannot filter results by parameter '${key}'`
+        );
       }
-      // Checks for missing values and throws error if so
+      // Checks for missing parameter values and throws error if so
       else if (filterBy[key] === "") {
-        throw new ExpressError(`Missing value for parameter ${key}`, 400);
+        throw new BadRequestError(`Missing value for parameter '${key}'`);
       }
-      // Sets minEmployees variable if exists, converts the string to a number
+      // Process minEmployees and maxEmployees parameters
       else if (key === "minEmployees") {
         minEmployees = +filterBy[key];
-      }
-      // Sets maxEmployees variable if exists, converts the string to a number
-      else if (key === "maxEmployees") {
+      } else if (key === "maxEmployees") {
         maxEmployees = +filterBy[key];
       }
 
       // If min value provided is greater than max value provided, throws an error
-      if (minEmployees > maxEmployees) {
-        throw new ExpressError(
-          "Minimum employees cannot be greater than maximum",
-          400
+      if (
+        minEmployees !== undefined &&
+        maxEmployees !== undefined &&
+        minEmployees > maxEmployees
+      ) {
+        throw new BadRequestError(
+          "Minimum employees cannot be greater than maximum"
         );
       }
-    }
-
-    // If no query params are passed, get all companies unfiltered
-    if (Object.keys(filterBy).length === 0) {
-      const companies = await Company.findAll();
-      return res.json({ companies });
     }
 
     // Get all companies by passing the filterBy object to the Company.findAll method
     const filteredCompanies = await Company.findAll(filterBy);
 
     return res.json({
-      companies: { filteredCompanies },
+      companies: filteredCompanies,
     });
   } catch (err) {
     return next(err);

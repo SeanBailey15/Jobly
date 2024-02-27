@@ -43,12 +43,22 @@ class Company {
     return company;
   }
 
-  /** Find all companies.
+  /**
+   * Find all companies.
    *
-   * Returns [{ handle, name, description, numEmployees, logoUrl }, ...]
-   * */
+   * Retrieves a list of all companies from the database, optionally filtered by specific criteria.
+   *
+   * @param {Object} filterBy - An optional object containing filter criteria.
+   * @param {string} [filterBy.nameLike] - A string to filter companies by name (case-insensitive, partial match).
+   * @param {number} [filterBy.minEmployees] - The minimum number of employees a company should have.
+   * @param {number} [filterBy.maxEmployees] - The maximum number of employees a company should have.
+   * @returns {Array<Object>} An array of objects representing companies that match the filter criteria (if provided).
+   * Each object has the following properties: handle, name, description, numEmployees, logoUrl.
+   * @throws {NotFoundError} If no companies match the filter criteria or if no companies exist in the database.
+   */
 
   static async findAll(filterBy = undefined) {
+    // If no filter criteria are provided, get all companies
     if (filterBy === undefined) {
       const companiesRes = await db.query(
         `SELECT handle,
@@ -60,15 +70,19 @@ class Company {
              ORDER BY name`
       );
 
+      // Throw an error if no companies are found
       if (companiesRes.rows.length === 0)
-        throw new ExpressError("No companies exist in database", 404);
-
+        throw new NotFoundError("No companies exist in database");
       return companiesRes.rows;
     }
+
+    // Construct filter queries based on the provided filter criteria
     let filterQueries = [];
     let values = [];
     let idx = 1;
+
     for (let key in filterBy) {
+      // Check if this is the first filter query
       if (idx === 1) {
         if (key === "nameLike") {
           filterQueries.push(`WHERE name ILIKE $${idx}`);
@@ -99,9 +113,10 @@ class Company {
         }
       }
     }
+    // Combine all filter queries using 'AND' to form the final WHERE clause
     const joinedQueries = filterQueries.join(" AND ");
-    console.log(joinedQueries);
-    console.log(values);
+
+    // Execute a database query with the constructed filter criteria
     const filteredRes = await db.query(
       `SELECT handle,
               name,
@@ -114,8 +129,9 @@ class Company {
       values
     );
 
+    // Throw an error if no companies match the filter criteria
     if (filteredRes.rows.length === 0)
-      throw new ExpressError("No companies match the parameters", 404);
+      throw new NotFoundError("No companies match the parameters");
 
     return filteredRes.rows;
   }
