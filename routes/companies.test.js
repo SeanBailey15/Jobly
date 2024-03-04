@@ -178,19 +178,33 @@ describe("GET /companies/:handle", function () {
         description: "Desc1",
         numEmployees: 1,
         logoUrl: "http://c1.img",
+        jobs: [
+          {
+            id: 1,
+            title: "j1",
+            salary: 100,
+            equity: 0.01,
+          },
+          {
+            id: 4,
+            title: "j no equity",
+            salary: null,
+            equity: null,
+          },
+        ],
       },
     });
   });
 
   test("works for anon: company w/o jobs", async function () {
-    const resp = await request(app).get(`/companies/c2`);
+    const resp = await request(app).get(`/companies/c3`);
     expect(resp.body).toEqual({
       company: {
-        handle: "c2",
-        name: "C2",
-        description: "Desc2",
-        numEmployees: 2,
-        logoUrl: "http://c2.img",
+        handle: "c3",
+        name: "C3",
+        description: "Desc3",
+        numEmployees: 3,
+        logoUrl: "http://c3.img",
       },
     });
   });
@@ -283,8 +297,8 @@ describe("DELETE /companies/:handle", function () {
   test("unauth for non-Admin", async function () {
     const resp = await request(app)
       .delete(`/companies/c1`)
-      .set("authorization", `Bearer ${u1Token}`);
-    expect(resp.body).toEqual({ deleted: "c1" });
+      .set("authorization", `Bearer ${u2Token}`);
+    expect(resp.statusCode).toEqual(401);
   });
 
   test("unauth for anon", async function () {
