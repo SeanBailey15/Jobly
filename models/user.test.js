@@ -117,6 +117,7 @@ describe("findAll", function () {
         lastName: "U1L",
         email: "u1@email.com",
         isAdmin: false,
+        jobs: [1, 2],
       },
       {
         username: "u2",
@@ -124,6 +125,7 @@ describe("findAll", function () {
         lastName: "U2L",
         email: "u2@email.com",
         isAdmin: false,
+        jobs: [3, 4],
       },
     ]);
   });
@@ -140,6 +142,7 @@ describe("get", function () {
       lastName: "U1L",
       email: "u1@email.com",
       isAdmin: false,
+      jobs: [1, 2],
     });
   });
 
@@ -214,8 +217,7 @@ describe("update", function () {
 describe("remove", function () {
   test("works", async function () {
     await User.remove("u1");
-    const res = await db.query(
-        "SELECT * FROM users WHERE username='u1'");
+    const res = await db.query("SELECT * FROM users WHERE username='u1'");
     expect(res.rows.length).toEqual(0);
   });
 
@@ -225,6 +227,45 @@ describe("remove", function () {
       fail();
     } catch (err) {
       expect(err instanceof NotFoundError).toBeTruthy();
+    }
+  });
+});
+
+/************************************** apply */
+
+describe("apply", function () {
+  const newApplication = ["u1", 3];
+
+  test("works", async function () {
+    const prev = await db.query(
+      "SELECT * FROM applications WHERE username='u1'"
+    );
+    expect(prev.rows.length).toEqual(2);
+
+    await User.apply(...newApplication);
+    const res = await db.query(
+      "SELECT * FROM applications WHERE username='u1'"
+    );
+    expect(res.rows.length).toEqual(3);
+  });
+
+  test("bad request if user already applied", async function () {
+    try {
+      await User.apply(...newApplication);
+      await User.apply(...newApplication);
+      fail();
+    } catch (err) {
+      expect(err instanceof BadRequestError).toBeTruthy();
+    }
+  });
+
+  test("bad request if no job exists", async function () {
+    try {
+      await User.apply("u1", 999);
+      fail();
+    } catch (err) {
+      console.log(err);
+      expect(err instanceof BadRequestError).toBeTruthy();
     }
   });
 });
